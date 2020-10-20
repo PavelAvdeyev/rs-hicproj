@@ -36,7 +36,7 @@ pub struct PairRecord {
 }
 
 impl PairRecord {
-    pub fn _new() -> PairRecord {
+    pub fn new() -> PairRecord {
         PairRecord {
             qname: AsciiString::default(),
             name1: AsciiString::default(),
@@ -48,14 +48,21 @@ impl PairRecord {
         }
     }
 
-    pub fn from_bams(r1: &bam::Record, r2: &bam::Record) -> PairRecord {
+    pub fn from_bams(r1: &bam::Record, r2: &bam::Record, header: &bam::Header) -> PairRecord {
+        if r1.ref_id() == -1 || r2.ref_id() == -1 {
+            return PairRecord::new(); // TODO thorw exception
+        }
+
         let (r1, r2) = get_ordered_alignments(r1, r2);
+        let name1 = header.reference_name(r1.ref_id() as u32).unwrap(); //TODO throw exception
+        let name2 = header.reference_name(r2.ref_id() as u32).unwrap();
+
         PairRecord {
             qname: AsciiString::from_ascii(r1.name()).unwrap(),
-            name1: AsciiString::from_ascii(r1.ref_id().to_string().as_bytes()).unwrap(),
+            name1: AsciiString::from_ascii(name1).unwrap(),
             pos1: get_alignment_pos(r1),
             strand1: if r1.flag().is_reverse_strand() {Strand::Reverse} else {Strand::Forward},
-            name2: AsciiString::from_ascii(r2.ref_id().to_string().as_bytes()).unwrap(),
+            name2: AsciiString::from_ascii(name2).unwrap(),
             pos2: get_alignment_pos(r2),
             strand2: if r2.flag().is_reverse_strand() {Strand::Reverse} else {Strand::Forward},
         }

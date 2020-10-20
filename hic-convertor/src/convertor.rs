@@ -6,13 +6,9 @@ use log::{info, trace, warn};
 
 use itertools::Itertools;
 use ascii::AsciiString;
-use bam::RecordReader;
+use bam::{RecordReader, Header};
 
-// use crate::gfa_graph::graph::GFAGraph;
 use super::pair_record::{self, PairRecord};
-
-
-// TODO Read id, we need header
 
 // When a read matches in its entirety, with an equal score in multiple locations, one of the locations is picked at
 // random, is labeled as primary, will be given a mapping quality of zero and will have an XA tag that contains the
@@ -94,7 +90,7 @@ impl Converter {
         let mut reader = bam::BamReader::from_path(self.bam_path.as_path(), 0).unwrap();
 
         trace!("Reading header...");
-        let header = reader.header();
+        let header = reader.header().clone();
 
         trace!("Reading body...");
         let mut record = bam::Record::new();
@@ -109,7 +105,7 @@ impl Converter {
             if let Some(pr_id) = &prev_read_id {
                 if pr_id.as_str() != r_id.as_str() {
                     trace!("New group of alignments for {} is detected with {} and {}.", pr_id, recs1.len(), recs2.len());
-                    self.parse_paired_alignments(&recs1, &recs2);
+                    self.parse_paired_alignments(&recs1, &recs2, &header);
                     recs1.clear(); recs2.clear();
                 }
             }
@@ -129,12 +125,12 @@ impl Converter {
         }
 
         trace!("Dump the latest group of alignments");
-        self.parse_paired_alignments(&recs1, &recs2);
+        self.parse_paired_alignments(&recs1, &recs2, &header);
 
         Ok(())
     }
 
-    fn parse_paired_alignments(&mut self, recs1: &[bam::Record], recs2: &[bam::Record]) {
+    fn parse_paired_alignments(&mut self, recs1: &[bam::Record], recs2: &[bam::Record], header: &bam::Header) {
         if recs1.is_empty() || recs2.is_empty() {
             return;
         }
@@ -165,7 +161,7 @@ impl Converter {
 
         if recs1.len() == 1 && recs2.len() == 1 {
             trace!("Pair read aligned 1&1 (perfectly) .");
-            let hic_records = self.convert_to_pair_records(prim_r1, prim_r2);
+            let hic_records = self.convert_to_pair_records(prim_r1, prim_r2, header);
             self.write_records(PairType::UU, &hic_records);
         } else if (recs1.len() == 1 || recs2.len() == 1)
             && matches!(self.strategy, RescueStrategy::Simple | RescueStrategy::Complex) {
@@ -173,7 +169,7 @@ impl Converter {
             let resc_linear_pair = self.rescue_simple_walk(recs1, recs2);
             if let Some((rec1, rec2)) = resc_linear_pair {
                 trace!("Hi-C read was rescued successfully.");
-                let hic_records = self.convert_to_pair_records(rec1, rec2);
+                let hic_records = self.convert_to_pair_records(rec1, rec2, header);
                 self.write_records(PairType::UD, &hic_records);
             }
         } else if recs1.len() < 3 && recs2.len() < 3 && matches!(self.strategy, RescueStrategy::Complex) {
@@ -181,7 +177,7 @@ impl Converter {
             let resc_linear_pair = self.rescue_complex_walk(recs1, recs2);
             if let Some((rec1, rec2)) = resc_linear_pair {
                 trace!("Hi-C read was rescued successfully.");
-                let hic_records = self.convert_to_pair_records(rec1, rec2);
+                let hic_records = self.convert_to_pair_records(rec1, rec2, header);
                 self.write_records(PairType::DD, &hic_records);
             }
         }
@@ -257,7 +253,7 @@ impl Converter {
         }
     }
 
-    fn convert_to_pair_records(&self, prim_r1: &bam::Record, prim_r2: &bam::Record) -> Vec<PairRecord> {
+    fn convert_to_pair_records(&self, prim_r1: &bam::Record, prim_r2: &bam::Record, header: &Header) -> Vec<PairRecord> {
         fn get_pairs(rec: &bam::Record, min_mapq: u8, is_rescue: bool) -> Vec<bam::Record> {
             let mut ans = Vec::new();
 
@@ -292,7 +288,7 @@ impl Converter {
         let recs2 = get_pairs(prim_r2, self.min_mapq, self.mapq_zero_rescue);
 
         Vec::from_iter(recs1.iter().cartesian_product(recs2.iter()).map(|(r1, r2)| {
-            PairRecord::from_bams(r1, r2)
+            PairRecord::from_bams(r1, r2, header)
         }))
     }
 

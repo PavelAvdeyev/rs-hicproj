@@ -48,10 +48,11 @@ fn setup_logging(verbosity: u64, log_file: &Path) -> Result<(), fern::InitError>
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let matches = App::new("converter")
+    let matches = App::new("convertor")
         .version("0.1.0")
         .author("Pavel Avdeyev")
-        .about("Pairs argument")
+        .about("hic-convertor converts BAM files with Hi-C reads to Hi-C pairs. \
+                It is also sorts and deduplicates obtained Hi-C reads.")
         .subcommand(
             SubCommand::with_name("all")
                 .about("Convert, sort and deduplicate Hi-C pairs.")

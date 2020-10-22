@@ -12,6 +12,22 @@ use super::utils;
 
 const CHUNKSIZE: usize = 30_000_000;
 
+pub enum Strategy {
+    ICGenomeWide,
+    BinLength,
+    None,
+}
+
+impl Strategy {
+    pub fn from_string(s: &str) -> Strategy {
+        match s {
+            "ICGW" => Strategy::ICGenomeWide,
+            "LEN" => Strategy::BinLength,
+            _ => Strategy::None
+        }
+    }
+}
+
 pub struct Balancer {
     ignore_diags: u32,
     min_nnz: u32,

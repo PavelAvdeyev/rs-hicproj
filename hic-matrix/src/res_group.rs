@@ -150,10 +150,10 @@ impl ResGroup {
         Ok((is, js, vs))
     }
 
-    fn get_raw_submatrix(&self, i0: usize, i1: usize, j0: usize, j1: usize) -> hdf5::Result<(Vec<u32>, Vec<u32>, Vec<u32>)> {
+    fn _get_raw_submatrix(&self, i0: usize, i1: usize, j0: usize, j1: usize) -> hdf5::Result<(Vec<u32>, Vec<u32>, Vec<u32>)> {
         assert!(self.selector.is_some());
         let sel = self.selector.as_ref().unwrap();
-        let (is, js, vs) = sel.get_raw_submatrix(i0, i1, j0, j1)?;
+        let (is, js, vs) = sel._get_raw_submatrix(i0, i1, j0, j1)?;
         // debug(&is, &js, &vs);
         Ok((is, js, vs))
     }

@@ -29,7 +29,7 @@ impl Selector2D {
         Ok((is, js, bvs))
     }
 
-    pub fn get_raw_submatrix(&self, i0: usize, i1: usize, j0: usize, j1: usize)
+    pub fn _get_raw_submatrix(&self, i0: usize, i1: usize, j0: usize, j1: usize)
         -> hdf5::Result<(Vec<u32>, Vec<u32>, Vec<u32>)> {
         self.get_rectangle(i0, i1, j0, j1)
     }

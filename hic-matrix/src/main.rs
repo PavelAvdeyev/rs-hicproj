@@ -2,9 +2,10 @@ use std::error::Error;
 use std::io;
 use std::path::Path;
 
-use log::info;
 use fern;
 use clap::{Arg, App, SubCommand};
+use hic_matrix::{zoom_with_balancing, Strategy, balance, create_matrix_from_pairs, create_multi_matrix_from_pairs};
+
 
 fn setup_logging(verbosity: u64, log_file: &Path) -> Result<(), fern::InitError> {
     let mut base_config = fern::Dispatch::new();
@@ -48,179 +49,212 @@ fn setup_logging(verbosity: u64, log_file: &Path) -> Result<(), fern::InitError>
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    info!("Hello world. ");
-    // let matches = App::new("converter")
-    //     .version("0.1.0")
-    //     .author("Pavel Avdeyev")
-    //     .about("Pairs argument")
-    //     .subcommand(
-    //         SubCommand::with_name("all")
-    //             .about("Convert, sort and deduplicate Hi-C pairs.")
-    //             .arg(
-    //                 Arg::with_name("bam")
-    //                     .short("b")
-    //                     .long("bam")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(true)
-    //                     .help("Alignments in bam format.")
-    //             )
-    //             .arg(
-    //                 Arg::with_name("out")
-    //                     .short("o")
-    //                     .long("out_dir")
-    //                     .value_name("DIR")
-    //                     .takes_value(true)
-    //                     .required(true)
-    //                     .help("Path to output directory.")
-    //             )
-    //             .arg(
-    //                 Arg::with_name("graph")
-    //                     .short("g")
-    //                     .long("graph")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(false)
-    //                     .help("Path to graph in gfa format.")
-    //             )
-    //             .arg(
-    //                 Arg::with_name("nproc")
-    //                     .short("t")
-    //                     .long("nproc")
-    //                     .value_name("NUM")
-    //                     .takes_value(true)
-    //                     .required(false)
-    //                     .help("Number of processes for sorting.")
-    //             )
-    //     )
-    //     .subcommand(
-    //         SubCommand::with_name("convert")
-    //             .about("Convert bam to pairs file.")
-    //             .arg(
-    //                 Arg::with_name("bam")
-    //                     .short("b")
-    //                     .long("bam")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(true)
-    //                     .help("Alignments in bam format.")
-    //             )
-    //             .arg(
-    //                 Arg::with_name("pairs")
-    //                     .short("p")
-    //                     .long("pairs")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(true)
-    //                     .help("File where obtained pairs will be saved.")
-    //             )
-    //             .arg(
-    //                 Arg::with_name("graph")
-    //                     .short("g")
-    //                     .long("graph")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(false)
-    //                     .help("Path to graph in gfa format.")
-    //             )
-    //     )
-    //     .subcommand(
-    //         SubCommand::with_name("sort")
-    //             .about("Sort pairs file using sort command (see man sort).")
-    //             .arg(
-    //                 Arg::with_name("in_pairs")
-    //                     .short("p")
-    //                     .long("in_pairs")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(true)
-    //                     .help("Input file with pairs.")
-    //             )
-    //             .arg(
-    //                 Arg::with_name("out_pairs")
-    //                     .short("o")
-    //                     .long("out_pairs")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(true)
-    //                     .help("Output file with sorted pairs.")
-    //             )
-    //             .arg(
-    //                 Arg::with_name("nproc")
-    //                     .short("t")
-    //                     .long("nproc")
-    //                     .value_name("NUM")
-    //                     .takes_value(true)
-    //                     .required(false)
-    //                     .help("Number of processes for sorting.")
-    //             )
-    //     )
-    //     .subcommand(
-    //         SubCommand::with_name("dedup")
-    //             .about("Remove duplicated Hi-C reads from file.")
-    //             .arg(
-    //                 Arg::with_name("in_pairs")
-    //                     .short("p")
-    //                     .long("in_pairs")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(true)
-    //                     .help("Input file with pairs.")
-    //             )
-    //             .arg(
-    //                 Arg::with_name("out_pairs")
-    //                     .short("o")
-    //                     .long("out_pairs")
-    //                     .value_name("FILE")
-    //                     .takes_value(true)
-    //                     .required(true)
-    //                     .help("Output file with sorted pairs.")
-    //             )
-    //     )
-    //     .get_matches();
-    //
-    // match matches.subcommand_name() {
-    //     Some("all") => {
-    //         setup_logging(1, "convert.log".as_ref()).expect("failed to initialize logging.");
-    //         let bam_file = matches.value_of("bam").unwrap();
-    //         let out_dir = matches.value_of("out").unwrap();
-    //         let nproc: u8 = matches.value_of("nproc").unwrap_or("4").parse().unwrap();
-    //         match matches.value_of("graph") {
-    //             None =>  full_pipeline(Path::new(bam_file), None, Path::new(out_dir), nproc)?,
-    //             Some(_) => full_pipeline(Path::new(bam_file), None, Path::new(out_dir), nproc)?,
-    //         }
-    //     },
-    //     Some("convert") => {
-    //         setup_logging(1, "convert.log".as_ref()).expect("failed to initialize logging.");
-    //         let bam_file = matches.value_of("bam").unwrap();
-    //         let pairs_file = matches.value_of("pairs").unwrap();
-    //         match matches.value_of("graph") {
-    //             None =>  convert_bam_to_pairs(Path::new(bam_file), None, Path::new(pairs_file), Path::new("stats.txt"))?,
-    //             Some(_) => convert_bam_to_pairs(Path::new(bam_file), None, Path::new(pairs_file), Path::new("stats.txt"))?,
-    //         }
-    //     },
-    //     Some("sort") => {
-    //         setup_logging(1, "convert.log".as_ref()).expect("failed to initialize logging.");
-    //         let in_file = matches.value_of("in_pairs").unwrap();
-    //         let out_file = matches.value_of("out_pairs").unwrap();
-    //         let nproc: u8 = matches.value_of("nproc").unwrap_or("4").parse().unwrap();
-    //         sort_pairs(Path::new(in_file), Path::new(out_file), Option::from(Path::new("tmp_sort_dir")), nproc)?;
-    //     },
-    //     Some("dedup") => {
-    //         setup_logging(1, "convert.log".as_ref()).expect("failed to initialize logging.");
-    //         let in_file = matches.value_of("in_pairs").unwrap();
-    //         let out_file = matches.value_of("out_pairs").unwrap();
-    //         deduplicate_pairs(Path::new(in_file), Path::new(out_file));
-    //     }
-    //     _ => println!("Unknown subcommand was used. See help for available one.")
-    // };
+    let matches = App::new("hic-matrix")
+        .version("0.1.0")
+        .author("Pavel Avdeyev")
+        .about("The minimum code for creating/balancing/zooming Hi-C matrices.")
+        .subcommand(
+            SubCommand::with_name("all")
+                .arg(
+                    Arg::with_name("pairs")
+                        .short("p")
+                        .long("pairs")
+                        .value_name("FILE")
+                        .takes_value(true)
+                        .required(true)
+                        .help("A file with Hi-C pairs. File must be tab seperated.\
+                                1 col - read name, 2 col - first contig, 3 col - first coordinate\
+                                4 col - second contig, 5 col - second coordinate, \
+                                6 col - first strand, 7 col - second strand.")
+                )
+                .arg(
+                    Arg::with_name("lengths")
+                        .short("l")
+                        .long("lengts")
+                        .value_name("FILE")
+                        .takes_value(true)
+                        .required(true)
+                        .help("File with contig lengths. First column is tig name, \
+                                second one is length.")
+                )
+                .arg(
+                    Arg::with_name("rslns")
+                        .short("r")
+                        .long("rslns")
+                        .multiple(true)
+                        .use_delimiter(true)
+                        .value_terminator(";")
+                        .takes_value(true)
+                        .value_name("INT")
+                        .required(true)
+                        .help("Resolutions that will be created from pairs.")
+                )
+                .arg(
+                    Arg::with_name("strategy")
+                        .short("s")
+                        .long("strategy")
+                        .possible_values(&["ICGW", "LEN"])
+                        .takes_value(true)
+                        .required(false)
+                        .help("Balancing strategy:. ICGW - iterative correction genome-wide, LEN - resolution size")
+                )
+                .arg(
+                    Arg::with_name("matrix")
+                        .short("m")
+                        .long("matrix")
+                        .value_name("FILE")
+                        .takes_value(true)
+                        .required(true)
+                        .help("Output file, where matrix will be stored in hdf5 format.")
+                )
+        )
+        .subcommand(
+            SubCommand::with_name("convert")
+                        .arg(
+                            Arg::with_name("pairs")
+                                .short("p")
+                                .long("pairs")
+                                .value_name("FILE")
+                                .takes_value(true)
+                                .required(true)
+                                .help("A file with Hi-C pairs. File must be tab seperated.\
+                                1 col - read name, 2 col - first contig, 3 col - first coordinate\
+                                4 col - second contig, 5 col - second coordinate, \
+                                6 col - first strand, 7 col - second strand.")
+                        )
+                        .arg(
+                            Arg::with_name("lengths")
+                                .short("l")
+                                .long("lengts")
+                                .value_name("FILE")
+                                .takes_value(true)
+                                .required(true)
+                                .help("File with contig lengths. First column is tig name, \
+                                second one is length.")
+                        )
+                        .arg(
+                            Arg::with_name("rsln")
+                                .short("r")
+                                .long("rsln")
+                                .value_name("INT")
+                                .takes_value(true)
+                                .required(true)
+                                .help("A resolution that will be created from pairs.")
+                        )
+                        .arg(
+                            Arg::with_name("matrix")
+                                .short("m")
+                                .long("matrix")
+                                .value_name("FILE")
+                                .takes_value(true)
+                                .required(true)
+                                .help("Output file, where matrix will be stored in hdf5 format.")
+                        )
+                        .arg(
+                            Arg::with_name("strategy")
+                                .short("s")
+                                .long("strategy")
+                                .possible_values(&["ICGW", "LEN"])
+                                .takes_value(true)
+                                .required(false)
+                                .help("Balancing strategy:. ICGW - iterative correction genome-wide, LEN - resolution size")
+                        )
+        )
+        .subcommand(
+            SubCommand::with_name("balance")
+                        .arg(
+                            Arg::with_name("matrix")
+                                .short("m")
+                                .long("matrix")
+                                .value_name("FILE")
+                                .takes_value(true)
+                                .required(true)
+                                .help("Matrix file in specific hdf5 format.")
+                        )
+                        .arg(
+                            Arg::with_name("rsln")
+                                .short("r")
+                                .long("rsln")
+                                .value_name("INT")
+                                .takes_value(true)
+                                .required(true)
+                                .help("A resolution that will be balanced. It must exist.")
+                        )
+                        .arg(
+                            Arg::with_name("strategy")
+                                .short("s")
+                                .long("strategy")
+                                .possible_values(&["ICGW", "LEN"])
+                                .takes_value(true)
+                                .required(false)
+                                .help("Balancing strategy:. ICGW - iterative correction genome-wide, LEN - resolution size")
+                        )
+        )
+        .subcommand(
+            SubCommand::with_name("zoom")
+                .arg(
+                    Arg::with_name("matrix")
+                            .short("m")
+                            .long("matrix")
+                            .value_name("FILE")
+                            .takes_value(true)
+                            .required(true)
+                            .help("Matrix file in specific hdf5 format.")
+                )
+                .arg(
+                    Arg::with_name("rsln")
+                        .short("r")
+                        .long("rsln")
+                        .value_name("INT")
+                        .takes_value(true)
+                        .required(true)
+                        .help("New resolution, which will be created from existence ones. \
+                                    It should be divisable by resolution already existing in the matrix")
+                )
+                .arg(
+                    Arg::with_name("strategy")
+                        .short("s")
+                        .long("strategy")
+                        .possible_values(&["ICGW", "LEN"])
+                        .takes_value(true)
+                        .required(false)
+                        .help("Balancing strategy:. ICGW - iterative correction genome-wide, LEN - resolution size")
+                )
+        )
+        .get_matches();
+
+    let matrix_file = Path::new(matches.value_of("matrix").unwrap());
+    let strategy = match matches.value_of("strategy") {
+        Some(strategy) => { Strategy::from_string(strategy) },
+        None => Strategy::None,
+    };
+
+    match matches.subcommand_name() {
+        Some("all") => {
+            setup_logging(1, "matrix.log".as_ref()).expect("failed to initialize logging.");
+            let pairs_file = Path::new(matches.value_of("pairs").unwrap());
+            let tig_length_file = Path::new(matches.value_of("lengths").unwrap());
+            let resolutions: Vec<u32> = matches.values_of("rslns").unwrap().into_iter().map(|x| { x.parse().unwrap() }).collect();
+            create_multi_matrix_from_pairs(pairs_file, tig_length_file, matrix_file, &resolutions, &strategy)?;
+        },
+        Some("convert") => {
+            setup_logging(1, "matrix.log".as_ref()).expect("failed to initialize logging.");
+            let pairs_file = Path::new(matches.value_of("pairs").unwrap());
+            let tig_length_file = Path::new(matches.value_of("lengths").unwrap());
+            let rsln: u32 = matches.value_of("rsln").unwrap().parse().unwrap();
+            create_matrix_from_pairs(pairs_file, tig_length_file, matrix_file, rsln, &strategy)?;
+        },
+        Some("balance") => {
+            setup_logging(1, "matrix.log".as_ref()).expect("failed to initialize logging.");
+            let rsln: u32 = matches.value_of("rsln").unwrap().parse().unwrap();
+            balance(matrix_file, rsln, &strategy)?;
+        },
+        Some("zoom") => {
+            setup_logging(1, "matrix.log".as_ref()).expect("failed to initialize logging.");
+            let rsln: u32 = matches.value_of("rsln").unwrap().parse().unwrap();
+            zoom_with_balancing(matrix_file, &vec![rsln], &strategy)?;
+        },
+        _ => println!("Unknown subcommand was used. See help for available one.")
+    }
     Ok(())
 }
-
-// setup_logging(3, "all_log.log".as_ref()).expect("failed to initialize logging.");
-// hicproj::run("tig_sizes.tsv")
-//hicproj::run("comp18_lens.tsv")
-// hicproj::run_graph("comp18.gfa")
-// info!("MyProgram v0.0.1 starting up!");
-// hicproj::run_matrix("comp18_lens.tsv", "pairs18.txt")
-//hicproj::run_scaffolding("comp18.gfa", "rs_test3.cool")

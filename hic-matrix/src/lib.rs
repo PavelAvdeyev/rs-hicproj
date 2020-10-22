@@ -9,21 +9,18 @@ mod selector;
 mod utils;
 mod balancer;
 
-pub use self::builders::matrix_builder::MatrixBuilder;
+use std::path::Path;
+use std::error::Error;
+use self::builders::matrix_builder;
+
+
 pub use self::res_group::ResGroup;
 pub use self::matrix::Matrix;
-pub use self::utils::parse_tig_lengths;
-
-
-// use std::path::Path;
-// use std::error::Error;
-// use ndarray::ArrayView1;
-// use ascii::AsciiString;
+pub use self::balancer::Strategy;
 
 
 
-// pub fn create_matrix_from_pairs(pairs_file: &Path, matrix_file: &Path,
-//                                 ordered_tig_lengths: &[(AsciiString, u64)], resolution: u32)
+// pub fn create_matrix_from_pairs(pairs_file: &Path, matrix_file: &Path, ordered_tig_lengths: &[(AsciiString, u64)], resolution: u32)
 //     -> Result<ResGroup, Box<dyn Error>> {
 //     {
 //         let builder = PairsBuilder::from_pairs(matrix_file, pairs_file, resolution, ordered_tig_lengths);
@@ -35,14 +32,28 @@ pub use self::utils::parse_tig_lengths;
 //     Ok(matrix)
 // }
 
-// pub fn create_multi_matrix_from_pairs(tig_length_file: &Path, pairs_file: &Path,
-//                                           matrix_file: &Path, new_ress: &[u32])
-//     -> Result<ResGroup, Box<dyn Error>> {
-//     let ordered_tig_lengths = utils::parse_tig_lengths(tig_length_file)?;
-//     let init_matrix = create_matrix_from_pairs(pairs_file, matrix_file, &ordered_tig_lengths, new_ress[0])?;
-//     let final_matrix = create_multi_matrix_by_zooming(init_matrix, &ordered_tig_lengths, &new_ress[1..])?;
-//     Ok(final_matrix)
-// }
+pub fn create_matrix_from_pairs(pairs_file: &Path, tig_length_file: &Path,
+                                matrix_file: &Path, rsltn: u32,
+                                balance_strategy: &Strategy) -> Result<(), Box<dyn Error>> {
+    let ordered_tig_lengths = utils::parse_tig_lengths(tig_length_file)?;
+    matrix_builder::build_from_pairs_with_balancing(pairs_file, matrix_file, &ordered_tig_lengths, rsltn, balance_strategy)?;
+    Ok(())
+}
+
+pub fn create_multi_matrix_from_pairs(pairs_file: &Path, tig_length_file: &Path,
+                                      matrix_file: &Path, resolutions: &[u32],
+                                      balance_strategy: &Strategy) -> Result<(), Box<dyn Error>> {
+    let ordered_tig_lengths = utils::parse_tig_lengths(tig_length_file)?;
+    matrix_builder::build_from_pairs_multi_res(pairs_file, matrix_file, &ordered_tig_lengths, resolutions, balance_strategy)?;
+    Ok(())
+}
+
+
+pub use self::builders::matrix_builder::balance;
+
+pub use self::builders::matrix_builder::zoom_with_balancing;
+
+
 
 
 // pub fn create_matrix_by_zooming<'a>(prev_mat: &'a ResGroup, ordered_tig_lengths: &[(AsciiString, u64)], new_res: u32) -> Result<ResGroup, Box<dyn Error>> {

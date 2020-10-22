@@ -7,7 +7,7 @@ use std::error::Error;
 
 use super::res_group::ResGroup;
 use super::reader::MatrixReader;
-use super::balancer::Balancer;
+use super::balancer::{Balancer, Strategy};
 use super::writer::MatrixWriter;
 use super::builders::zoom_builder::ZoomBuilder;
 use super::errors::MatrixResolutionError;
@@ -61,21 +61,27 @@ impl<'a> Matrix {
         Ok(self)
     }
 
-    pub fn balance(&self, rstln: u32) -> Result<(), Box<dyn Error>> {
+    pub fn balance(&self, rstln: u32, strategy: &Strategy) -> Result<(), Box<dyn Error>> {
         println!("Balance {}", rstln);
         match self.resolutions.get(&rstln) {
             Some(res_group) => {
                 let balancer = Balancer::new();
-                if let Some(weights) = balancer.balance_by_ic_genomewide(res_group) {
+                let weights = match strategy {
+                    Strategy::ICGenomeWide => balancer.balance_by_ic_genomewide(res_group),
+                    Strategy::BinLength => Some(balancer.balance_by_resolution(res_group)),
+                    Strategy::None => None
+                };
+
+                if let Some(wghs) = weights {
                     let writer = MatrixWriter::new_in_appending_mode(self.file_path.as_path())?;
-                    writer.write_balancing_weights(rstln, weights.view())?;
+                    writer.write_balancing_weights(rstln, wghs.view())?;
                 }
+
                 Ok(())
             },
             _ => Err(MatrixResolutionError.into())
         }
     }
-
 
     pub fn zoom(&mut self, from_rstln: u32, to_rstln: u32) -> Result<(), Box<dyn Error>> {
         println!("Zooming matrix from {} to {}", from_rstln, to_rstln);

@@ -4,9 +4,9 @@ use std::path::Path;
 
 use log::info;
 use fern;
-use clap::{Arg, App, SubCommand};
+// use clap::{Arg, App, SubCommand};
 
-fn setup_logging(verbosity: u64, log_file: &Path) -> Result<(), fern::InitError> {
+fn _setup_logging(verbosity: u64, log_file: &Path) -> Result<(), fern::InitError> {
     let mut base_config = fern::Dispatch::new();
 
     base_config = match verbosity {

@@ -2,6 +2,7 @@ use std::error::Error;
 use std::io;
 use std::path::Path;
 
+use log::info;
 use fern;
 use clap::{Arg, App, SubCommand};
 use hic_convertor::{full_pipeline, convert_bam_to_pairs, deduplicate_pairs, sort_pairs};
@@ -179,40 +180,45 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
-    match matches.subcommand_name() {
-        Some("all") => {
+    match matches.subcommand() {
+        ("all", Some(all_matches)) => {
             setup_logging(1, "convert.log".as_ref()).expect("failed to initialize logging.");
-            let bam_file = matches.value_of("bam").unwrap();
-            let out_dir = matches.value_of("out").unwrap();
-            let nproc: u8 = matches.value_of("nproc").unwrap_or("4").parse().unwrap();
-            match matches.value_of("graph") {
+            let bam_file = all_matches.value_of("bam").unwrap();
+            let out_dir = all_matches.value_of("out").unwrap();
+            let nproc: u8 = all_matches.value_of("nproc").unwrap_or("4").parse().unwrap();
+            info!("all with {} {} {}", bam_file, out_dir, nproc);
+            match all_matches.value_of("graph") {
                 None =>  full_pipeline(Path::new(bam_file), None, Path::new(out_dir), nproc)?,
                 Some(_) => full_pipeline(Path::new(bam_file), None, Path::new(out_dir), nproc)?,
             }
         },
-        Some("convert") => {
+        ("convert", Some(convert_matches)) => {
             setup_logging(1, "convert.log".as_ref()).expect("failed to initialize logging.");
-            let bam_file = matches.value_of("bam").unwrap();
-            let pairs_file = matches.value_of("pairs").unwrap();
-            match matches.value_of("graph") {
+            let bam_file = convert_matches.value_of("bam").unwrap();
+            let pairs_file = convert_matches.value_of("pairs").unwrap();
+            info!("convert with {} {}", bam_file, pairs_file);
+            match convert_matches.value_of("graph") {
                 None =>  convert_bam_to_pairs(Path::new(bam_file), None, Path::new(pairs_file), Path::new("stats.txt"))?,
                 Some(_) => convert_bam_to_pairs(Path::new(bam_file), None, Path::new(pairs_file), Path::new("stats.txt"))?,
             }
         },
-        Some("sort") => {
+        ("sort", Some(sort_matches)) => {
             setup_logging(1, "convert.log".as_ref()).expect("failed to initialize logging.");
-            let in_file = matches.value_of("in_pairs").unwrap();
-            let out_file = matches.value_of("out_pairs").unwrap();
-            let nproc: u8 = matches.value_of("nproc").unwrap_or("4").parse().unwrap();
+            let in_file = sort_matches.value_of("in_pairs").unwrap();
+            let out_file = sort_matches.value_of("out_pairs").unwrap();
+            let nproc: u8 = sort_matches.value_of("nproc").unwrap_or("4").parse().unwrap();
+            info!("sort with {} {} {}", in_file, out_file, nproc);
             sort_pairs(Path::new(in_file), Path::new(out_file), Option::from(Path::new("tmp_sort_dir")), nproc)?;
         },
-        Some("dedup") => {
+        ("dedup", Some(dedup_matches)) => {
             setup_logging(1, "convert.log".as_ref()).expect("failed to initialize logging.");
-            let in_file = matches.value_of("in_pairs").unwrap();
-            let out_file = matches.value_of("out_pairs").unwrap();
+            let in_file = dedup_matches.value_of("in_pairs").unwrap();
+            let out_file = dedup_matches.value_of("out_pairs").unwrap();
+            info!("sort with {} {}", in_file, out_file);
             deduplicate_pairs(Path::new(in_file), Path::new(out_file));
         }
-        _ => println!("Unknown subcommand was used. See help for available one.")
+        ("", None) => println!("None subcommand was used. See help for available one."),
+        _ => unreachable!(),
     };
     Ok(())
 }

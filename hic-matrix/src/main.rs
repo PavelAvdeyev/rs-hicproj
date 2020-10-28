@@ -223,38 +223,54 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
-    let matrix_file = Path::new(matches.value_of("matrix").unwrap());
-    let strategy = match matches.value_of("strategy") {
-        Some(strategy) => { Strategy::from_string(strategy) },
-        None => Strategy::None,
-    };
-
-    match matches.subcommand_name() {
-        Some("all") => {
+    match matches.subcommand() {
+        ("all", Some(all_matches)) => {
             setup_logging(1, "matrix.log".as_ref()).expect("failed to initialize logging.");
-            let pairs_file = Path::new(matches.value_of("pairs").unwrap());
-            let tig_length_file = Path::new(matches.value_of("lengths").unwrap());
-            let resolutions: Vec<u32> = matches.values_of("rslns").unwrap().into_iter().map(|x| { x.parse().unwrap() }).collect();
+            let pairs_file = Path::new(all_matches.value_of("pairs").unwrap());
+            let tig_length_file = Path::new(all_matches.value_of("lengths").unwrap());
+            let resolutions: Vec<u32> = all_matches.values_of("rslns").unwrap().into_iter().map(|x| { x.parse().unwrap() }).collect();
+            let matrix_file = Path::new(all_matches.value_of("matrix").unwrap());
+            let strategy = match all_matches.value_of("strategy") {
+                Some(strategy) => { Strategy::from_string(strategy) },
+                None => Strategy::None,
+            };
+
             create_multi_matrix_from_pairs(pairs_file, tig_length_file, matrix_file, &resolutions, &strategy)?;
         },
-        Some("convert") => {
+        ("convert", Some(convert_matches)) => {
             setup_logging(1, "matrix.log".as_ref()).expect("failed to initialize logging.");
-            let pairs_file = Path::new(matches.value_of("pairs").unwrap());
-            let tig_length_file = Path::new(matches.value_of("lengths").unwrap());
-            let rsln: u32 = matches.value_of("rsln").unwrap().parse().unwrap();
+            let pairs_file = Path::new(convert_matches.value_of("pairs").unwrap());
+            let tig_length_file = Path::new(convert_matches.value_of("lengths").unwrap());
+            let rsln: u32 = convert_matches.value_of("rsln").unwrap().parse().unwrap();
+            let matrix_file = Path::new(convert_matches.value_of("matrix").unwrap());
+            let strategy = match convert_matches.value_of("strategy") {
+                Some(strategy) => { Strategy::from_string(strategy) },
+                None => Strategy::None,
+            };
             create_matrix_from_pairs(pairs_file, tig_length_file, matrix_file, rsln, &strategy)?;
         },
-        Some("balance") => {
+        ("balance", Some(bal_matches)) => {
             setup_logging(1, "matrix.log".as_ref()).expect("failed to initialize logging.");
-            let rsln: u32 = matches.value_of("rsln").unwrap().parse().unwrap();
+            let rsln: u32 = bal_matches.value_of("rsln").unwrap().parse().unwrap();
+            let matrix_file = Path::new(bal_matches.value_of("matrix").unwrap());
+            let strategy = match bal_matches.value_of("strategy") {
+                Some(strategy) => { Strategy::from_string(strategy) },
+                None => Strategy::None,
+            };
             balance(matrix_file, rsln, &strategy)?;
         },
-        Some("zoom") => {
+        ("zoom", Some(zoom_matches)) => {
             setup_logging(1, "matrix.log".as_ref()).expect("failed to initialize logging.");
-            let rsln: u32 = matches.value_of("rsln").unwrap().parse().unwrap();
+            let rsln: u32 = zoom_matches.value_of("rsln").unwrap().parse().unwrap();
+            let matrix_file = Path::new(zoom_matches.value_of("matrix").unwrap());
+            let strategy = match zoom_matches.value_of("strategy") {
+                Some(strategy) => { Strategy::from_string(strategy) },
+                None => Strategy::None,
+            };
             zoom_with_balancing(matrix_file, &vec![rsln], &strategy)?;
         },
-        _ => println!("Unknown subcommand was used. See help for available one.")
+        ("", None) => println!("None subcommand was used. See help for available one."),
+        _ => unreachable!(),
     }
     Ok(())
 }

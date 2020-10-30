@@ -33,25 +33,17 @@ pub use self::balancer::Strategy;
 // }
 
 pub fn create_matrix_from_pairs(pairs_file: &Path, tig_length_file: &Path,
-                                matrix_file: &Path, rsltn: u32,
-                                balance_strategy: &Strategy) -> Result<(), Box<dyn Error>> {
-    let ordered_tig_lengths = utils::parse_tig_lengths(tig_length_file)?;
-    matrix_builder::build_from_pairs_with_balancing(pairs_file, matrix_file, &ordered_tig_lengths, rsltn, balance_strategy)?;
-    Ok(())
-}
-
-pub fn create_multi_matrix_from_pairs(pairs_file: &Path, tig_length_file: &Path,
-                                      matrix_file: &Path, resolutions: &[u32],
-                                      balance_strategy: &Strategy) -> Result<(), Box<dyn Error>> {
-    let ordered_tig_lengths = utils::parse_tig_lengths(tig_length_file)?;
-    matrix_builder::build_from_pairs_multi_res(pairs_file, matrix_file, &ordered_tig_lengths, resolutions, balance_strategy)?;
+                                matrix_file: &Path, rslns: &[u32],
+                                strategy: &Strategy) -> Result<(), Box<dyn Error>> {
+    let ord_tig_lengths = utils::parse_tig_lengths(tig_length_file)?;
+    matrix_builder::build_from_pairs_multi_res(pairs_file, matrix_file, &ord_tig_lengths, rslns, strategy)?;
     Ok(())
 }
 
 
 pub use self::builders::matrix_builder::balance;
 
-pub use self::builders::matrix_builder::zoom_with_balancing;
+pub use self::builders::matrix_builder::zoom;
 
 
 

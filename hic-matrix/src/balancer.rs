@@ -26,6 +26,13 @@ impl Strategy {
             _ => Strategy::None
         }
     }
+
+    pub fn from_option(s: Option<&str>) -> Strategy {
+        match s {
+            Some(strategy) => { Strategy::from_string(strategy) }
+            None => Strategy::None,
+        }
+    }
 }
 
 pub struct Balancer {

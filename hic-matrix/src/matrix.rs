@@ -23,6 +23,7 @@ pub struct Matrix {
     file_path: PathBuf,
 }
 
+// TODO write code that checks that resolution exists
 
 impl<'a> Matrix {
     pub fn new() -> Matrix {

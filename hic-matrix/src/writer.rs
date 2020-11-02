@@ -92,7 +92,14 @@ impl ResGrpWriter {
 
     fn write_balancing_weights(grp: &hdf5::Group, weights: ArrayView1<f64>) -> hdf5::Result<()> {
         let grp = grp.group("bins")?;
-        write_dataset(&grp, "weight", weights.len(), weights)?;
+        match grp.dataset("weight") {
+            Ok(dts) => {
+                dts.resize(weights.len())?;
+                dts.write(weights);
+            }
+            _ => write_dataset(&grp, "weight", weights.len(), weights)?
+        };
+
         Ok(())
     }
 

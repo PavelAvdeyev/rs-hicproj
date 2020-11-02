@@ -53,24 +53,6 @@ pub fn get_vec_wrt_predicate<T: Copy>(predicate: &[bool], array: &[T]) -> Vec<T>
 }
 
 
-pub fn get_zooming_order(resolutions: &[u32]) -> Vec<i32> {
-    let mut pred = vec![-1; resolutions.len()];
-
-    for (i, res) in resolutions.iter().enumerate().skip(1) {
-        let mut p = (i - 1) as i32;
-
-        while p >= 0 {
-            if res % resolutions[p as usize] == 0 {
-                pred[i] = p;
-                break;
-            }
-            p -= 1;
-        }
-    }
-
-    pred
-}
-
 pub fn bincount<Q>(length: usize, array: ArrayView1<u32>, weights: ArrayView1<Q>) -> Array1<Q>
     where Q: Copy + ops::AddAssign + identities::Zero {
     let mut counts: Array1<Q> = Array1::zeros((length,));
